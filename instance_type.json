@@ -1,0 +1,18 @@
+{
+    "m5large":{
+        "cpu": 2,
+        "ram": 8 
+    },
+    "m5xlarge":{
+        "cpu": 4,
+        "ram": 16 
+    },
+    "m52xlarge":{
+        "cpu": 8,
+        "ram": 32 
+    },
+    "m54xlarge":{
+        "cpu": 16,
+        "ram": 64 
+    }
+}
