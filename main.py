@@ -4,6 +4,18 @@ import argparse
 import configparser
 
 #instancemap = json.loads(open('instance_type.json').read())
+def getnearsize(instancemap,cpus,rams):
+    filterd_sizes = []
+    for x,y in instancemap.items():
+        if y['cpu'] >= cpus:
+            if y['ram'] >= rams:
+                filterd_sizes.append((x,y['cpu']*y['ram']))
+    sorted_filterd_sizes = sorted(filterd_sizes,key=lambda x:x[1])
+    if len(sorted_filterd_sizes) == 0 :
+        return None
+    else:
+        final_choice = sorted_filterd_sizes[0][0]
+        return final_choice
 
 def getsizing(instancemap,prefferedsizing,cpus,rams):
     outputmap = {}
@@ -24,6 +36,17 @@ def getsizing(instancemap,prefferedsizing,cpus,rams):
             rcpus=cpus - (count * icpu)
             rrams=rams - (count * iram)
             print('Remaining CPU: {}  & RAM: {}'.format(rcpus,rrams))
+            filterd_sizes = []
+            for x,y in instancemap.items():
+                if y['cpu'] >= rcpus:
+                    if y['ram'] >= rrams:
+                        filterd_sizes.append((x,y['cpu']*y['ram']))
+            sorted_filterd_sizes = sorted(filterd_sizes,key=lambda x:x[1])
+            final_choice= sorted_filterd_sizes[0][0]
+            rcpus=rcpus-instancemap[final_choice]['cpu']
+            rrams=rrams-instancemap[final_choice]['ram']
+            print('Remaining CPU: {}  & RAM: {}'.format(rcpus,rrams))
+            outputmap[final_choice]=1
         return outputmap
 
 def main():
