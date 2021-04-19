@@ -3,20 +3,6 @@ import json
 import argparse
 import configparser
 
-#instancemap = json.loads(open('instance_type.json').read())
-def getnearsize(instancemap,cpus,rams):
-    filterd_sizes = []
-    for x,y in instancemap.items():
-        if y['cpu'] >= cpus:
-            if y['ram'] >= rams:
-                filterd_sizes.append((x,y['cpu']*y['ram']))
-    sorted_filterd_sizes = sorted(filterd_sizes,key=lambda x:x[1])
-    if len(sorted_filterd_sizes) == 0 :
-        return None
-    else:
-        final_choice = sorted_filterd_sizes[0][0]
-        return final_choice
-
 def getsizing(instancemap,prefferedsizing,cpus,rams):
     outputmap = {}
     icpu=instancemap[prefferedsizing]['cpu']
@@ -25,29 +11,44 @@ def getsizing(instancemap,prefferedsizing,cpus,rams):
         outputmap[prefferedsizing]=1
         return outputmap
     else:
-        ccount,rcpus=divmod(cpus,icpu)
-        rcount,rrams=divmod(rams,iram)
-        if ccount == rcount:
-            outputmap[prefferedsizing]=ccount
-            print('Remaining CPU: {}  & RAM: {}'.format(rcpus,rrams))
-        else:
-            count=min(ccount,rcount)
-            outputmap[prefferedsizing]=count
-            rcpus=cpus - (count * icpu)
-            rrams=rams - (count * iram)
-            print('Remaining CPU: {}  & RAM: {}'.format(rcpus,rrams))
-            filterd_sizes = []
-            for x,y in instancemap.items():
-                if y['cpu'] >= rcpus:
-                    if y['ram'] >= rrams:
-                        filterd_sizes.append((x,y['cpu']*y['ram']))
-            sorted_filterd_sizes = sorted(filterd_sizes,key=lambda x:x[1])
-            final_choice= sorted_filterd_sizes[0][0]
-            rcpus=rcpus-instancemap[final_choice]['cpu']
-            rrams=rrams-instancemap[final_choice]['ram']
-            print('Remaining CPU: {}  & RAM: {}'.format(rcpus,rrams))
-            outputmap[final_choice]=1
+        evalset = {}
+        for x,y in instancemap.items():
+            evalset[x] = []
+            for i in range(1,6):
+                evalset[x].append({'count':i, 'cpu': i*y['cpu'] , 'ram': i*y['ram'] })
+        filtered = {}
+        for eachsize,info in evalset.items():
+            filtered[eachsize]=[]
+            for eachcombo in info:
+                #print(eachcombo)
+                if eachcombo['cpu'] >= cpus and eachcombo['ram'] >= rams:
+                    wastage = (cpus - eachcombo['cpu']) + (rams - eachcombo['ram'])
+                    filtered[eachsize].append({'count':eachcombo['count'],'wastage':wastage ,'cpu': eachcombo['cpu'],'ram': eachcombo['ram']})
+        filtered = { a:b for a,b in filtered.items() if len(b) > 0 }
+        minwastage=None
+        for x,y in filtered.items():
+            for each in y:
+                if minwastage is None:
+                    minwastage = abs(each['wastage'])
+                    outputmap[x]={
+                            'count': each['count'], 
+                            'overprovision': {
+                                'cpu': each['cpu'] - cpus,
+                                'ram':each['ram'] - rams
+                            }
+                        }
+                else:
+                    if  abs(each['wastage']) < minwastage:
+                        minwastage = abs(each['wastage'])
+                        outputmap[x]={
+                            'count': each['count'], 
+                            'overprovision': {
+                                'cpu': each['cpu'] - cpus,
+                                'ram':each['ram'] - rams
+                            }
+                        }
         return outputmap
+            
 
 def main():
     config = configparser.ConfigParser()
